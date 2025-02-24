@@ -1,18 +1,25 @@
-#!/usr/bin/env bun
-
 import chalk from "chalk";
 import { Command } from "commander";
-import { mkdir, writeFile } from "node:fs/promises";
+import { access, mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import * as prompts from "prompts";
+import prompts from "prompts";
+
+const packageJson = Bun.file("package.json", { type: "application/json" });
+const { version } = await packageJson.json();
 
 const program = new Command();
+
+// Handle Ctrl + C
+process.on("SIGINT", () => {
+  console.log(chalk.yellow("\nCtrl + C was pressed. Exiting..."));
+  process.exit(1);
+});
 
 program
   .name("create-chatterino-plugin")
   .description("A CLI tool to create Chatterino plugins")
-  .version("0.0.1");
+  .version(version);
 
 program
   .argument("[pluginName]", "Name of the plugin")
@@ -32,15 +39,13 @@ program
           : await askForPermissions();
 
         await createPlugin(name, permissions);
-
-        console.log(chalk.green(`Plugin "${name}" created successfully!`));
       } catch (error: any) {
         console.error(chalk.red(`Failed to create plugin: ${error.message}`));
       }
     }
   );
 
-function getChatterinoPath(): string {
+export function getChatterinoPath(): string {
   switch (process.platform) {
     case "win32":
       return join(process.env.APPDATA || "", "Chatterino2");
@@ -53,18 +58,24 @@ function getChatterinoPath(): string {
   }
 }
 
-async function askForPluginName(): Promise<string> {
+export async function askForPluginName(): Promise<string> {
   const response = await prompts({
     type: "text",
     name: "name",
     message: "What is the name of your plugin?",
     validate: (value: string) =>
       value !== "" ? true : "Plugin name cannot be empty",
+    onState: (state) => {
+      if (state.aborted) {
+        console.log(chalk.yellow("\nAborted by user. Exiting..."));
+        process.exit(1);
+      }
+    },
   });
   return response.name;
 }
 
-async function askForPermissions(): Promise<string[]> {
+export async function askForPermissions(): Promise<string[]> {
   const response = await prompts({
     type: "multiselect",
     name: "permissions",
@@ -74,11 +85,20 @@ async function askForPermissions(): Promise<string[]> {
       { title: "FilesystemWrite", value: "FilesystemWrite" },
       { title: "HTTP", value: "HTTP" },
     ],
+    onState: (state) => {
+      if (state.aborted) {
+        console.log(chalk.yellow("\nAborted by user. Exiting..."));
+        process.exit(1);
+      }
+    },
   });
   return response.permissions;
 }
 
-function createInfoJson(pluginName: string, permissions: string[]): string {
+export function createInfoJson(
+  pluginName: string,
+  permissions: string[]
+): string {
   return JSON.stringify(
     {
       name: pluginName,
@@ -95,7 +115,10 @@ function createInfoJson(pluginName: string, permissions: string[]): string {
   );
 }
 
-function createInitLua(pluginName: string, permissions: string[]): string {
+export function createInitLua(
+  pluginName: string,
+  permissions: string[]
+): string {
   let content = `print("${pluginName} plugin initialized!")\n\n`;
 
   if (
@@ -122,22 +145,48 @@ c2.register_command("/test-http", cmd_http)
   return content;
 }
 
-async function createPlugin(pluginName: string, permissions: string[]) {
+export async function createPlugin(pluginName: string, permissions: string[]) {
   const baseDir = getChatterinoPath();
   const pluginDir = join(baseDir, "Plugins", pluginName);
+
+  // Check if the directory already exists
+  try {
+    await access(pluginDir);
+    // If the directory exists, prompt the user for confirmation
+    const response = await prompts({
+      type: "confirm",
+      name: "overwrite",
+      message: `A directory named "${pluginName}" already exists. Do you want to overwrite it?`,
+      initial: false,
+      onState: (state) => {
+        if (state.aborted) {
+          console.log(chalk.yellow("\nAborted by user. Exiting..."));
+          process.exit(1);
+        }
+      },
+    });
+
+    if (!response.overwrite) {
+      console.log(chalk.yellow("Plugin creation aborted."));
+      return; // Exit the function early
+    }
+  } catch (error) {
+    // Directory does not exist, proceed with creation
+  }
 
   // Create plugin directory
   await mkdir(pluginDir, { recursive: true });
 
   // Create info.json
   const infoJsonContent = createInfoJson(pluginName, permissions);
-  await writeFile(join(pluginDir, "info.json"), infoJsonContent);
+  await Bun.write(join(pluginDir, "info.json"), infoJsonContent);
 
   // Create init.lua
   const initLuaContent = createInitLua(pluginName, permissions);
-  await writeFile(join(pluginDir, "init.lua"), initLuaContent);
+  await Bun.write(join(pluginDir, "init.lua"), initLuaContent);
 
-  console.log(chalk.green(`Created plugin directory: ${pluginDir}`));
+  // Log success message
+  console.log(chalk.green(`Plugin "${pluginName}" created successfully!`));
 }
 
 program.parse(process.argv);
