@@ -1,16 +1,14 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
 import chalk from "chalk";
 import { Command } from "commander";
-import { access, mkdir } from "node:fs/promises";
+import { access, mkdir, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import prompts from "prompts";
 
-const packageJson = Bun.file("package.json", { type: "application/json" });
-const { version } = await packageJson.json();
-
 const program = new Command();
+const version = "0.1.5";
 
 // Handle Ctrl + C
 process.on("SIGINT", () => {
@@ -181,11 +179,11 @@ export async function createPlugin(pluginName: string, permissions: string[]) {
 
   // Create info.json
   const infoJsonContent = createInfoJson(pluginName, permissions);
-  await Bun.write(join(pluginDir, "info.json"), infoJsonContent);
+  await writeFile(join(pluginDir, "info.json"), infoJsonContent);
 
   // Create init.lua
   const initLuaContent = createInitLua(pluginName, permissions);
-  await Bun.write(join(pluginDir, "init.lua"), initLuaContent);
+  await writeFile(join(pluginDir, "init.lua"), initLuaContent);
 
   // Log success message
   console.log(chalk.green(`Plugin "${pluginName}" created successfully!`));
