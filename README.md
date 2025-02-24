@@ -29,7 +29,7 @@ bunx chatterino-plugin my-cool-plugin --permissions FilesystemRead,HTTP
 
 ## Contributing
 
-Feel free to contribute by opening issues or submitting pull requests.
+Feel free to contribute by opening an [issue](https://github.com/jccdev45/create-chatterino-plugin/issues/new) or submitting a [pull request](https://github.com/jccdev45/create-chatterino-plugin/compare).
 
 ## License
 
