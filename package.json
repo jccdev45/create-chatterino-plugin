@@ -1,0 +1,46 @@
+{
+  "name": "create-chatterino-plugin",
+  "version": "0.1.0",
+  "private": false,
+  "description": "A CLI tool to create Chatterino plugins with ease.",
+  "keywords": [
+    "chatterino",
+    "plugin",
+    "cli",
+    "generator"
+  ],
+  "homepage": "https://github.com/jccdev45/create-chatterino-plugin#readme",
+  "bugs": {
+    "url": "https://github.com/jccdev45/create-chatterino-plugin/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jccdev45/create-chatterino-plugin.git"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "jccdev",
+    "email": "jccdev45@gmail.com",
+    "url": "https://jccdev.vercel.app"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "chatterino-plugin": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/prompts": "^2.4.9",
+    "typescript": "^5.0.0"
+  }
+}
